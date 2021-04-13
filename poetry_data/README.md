@@ -1,0 +1,1 @@
+`couplet_prefixes.txt` contains the 13th line of each of Shakespeare's sonnets. `couplet_ends.txt` contains the 14th. (Each 14-line sonnet ends with a couplet in the last two lines). The prefixes are our test set prefixes for the couplet completion task; the ends are Shakespeare's outputs. 

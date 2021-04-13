@@ -1,0 +1,8 @@
+Phyme==0.0.9
+pronouncing==0.2.0
+pytorch-lightning==1.0.6
+torch==1.7.0
+tqdm==4.49.0
+transformers==3.4.0
+sacrebleu==1.4.14
+sacremoses==0.0.43
