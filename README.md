@@ -1,6 +1,8 @@
 # FUDGE: Controlled Text Generation With Future Discriminators
 
-This repo contains code corresponding to the paper FUDGE: Controlled Text Generation With Future Discriminators (https://arxiv.org/abs/2104.05218) by Kevin Yang and Dan Klein, to appear at NAACL 2021. 
+This repo contains code corresponding to the paper FUDGE: Controlled Text Generation With Future Discriminators (https://arxiv.org/abs/2104.05218) by Kevin Yang and Dan Klein, published at NAACL 2021. 
+
+You can also find a video presentation at http://somup.com/crhlVPFKN7 and the corresponding slides in `slides.pptx`. 
 
 ## Setup/Installation
 
