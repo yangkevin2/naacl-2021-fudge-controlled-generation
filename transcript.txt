@@ -1,0 +1,415 @@
+(Sorry, the slide numbers got a bit misaligned as I added slides. Not an exact transcript for the video but roughly correct.)
+
+1:
+Hi! I'm Kevin from UC Berkeley, and today I'll be presenting my paper FUDGE: Controlled Text Generation with Future Discriminators, by me and my advisor Dan Klein. 
+
+2:
+So first a quick overview. 
+
+3:
+I'll start by explaining the problem of controlled text generation with some examples, 
+
+4:
+then describe our method, FUDGE, Future Discriminators for Generation, 
+
+5:
+and in doing so I'll also show experimental results and example model outputs on three diverse controlled generation tasks. 
+
+6:
+So what's controlled text generation?
+
+7:
+Well let's start with our autoregressive language model that we use for text generation, without the controlled part. 
+
+8:
+The language model models a distribution over next tokens x i+1 given the prefix x1 to x i. for example, you might tell it to
+
+9:
+Generate text according to a prompt like
+
+9:
+THIS, the issue focused on. 
+
+10:
+and then it'll chug along and generate text, 
+
+11:
+and these days language models are pretty good. 
+But in controlled generation, you have an additional attribute constraint
+
+12:
+like wanting the output to be about politics.
+
+13:
+Specifically, we have an attribute function a(X) which says whether or not the attribute a is true for your output X, in this case whether or not the output is on topic. There's no probabilities involved in a(X) since it operates on the completed generation output, not on partial sequences. 
+
+14:
+More precisely, the task of controlled text generation is to sample from the distribution P(X given a = True), so the distribution of outputs X which satisfy a. 
+
+15:
+By default the language model isn't equipped to handle this additional constraint a, so its output is not going to pass. 
+So we need a method for *controlled* text generation. 
+
+15:
+For example, our method FUDGE. 
+
+16:
+Given the same prompt with the politics topic,
+
+16:
+Here's what FUDGE says.
+
+17:
+It worked pretty well in this example. It's talking about institutions and constitutions, which seems clearly on topic. 
+
+18:
+And I'll point out here that controlled generation makes sense in addition to the usual conditioning on the input that you might see in translation or summarization. 
+
+19:
+Say we're translating Spanish to English. There's input conditioning on the original Spanish, but we're also imposing the additional constraint that the output be formal, which is where controlled text generation comes in. 
+
+20: 
+So say we have this Spanish input
+
+20: 
+and let me just move it to the corner so we can still see it
+
+20:
+If you ask your off-the-shelf translation model it'll get the meaning right, 
+but it copies some ungrammatical parts of the original Spanish
+
+21:
+like these repeated words in bold. 
+
+22:
+So at the end when we ask our formality classifier, 
+
+23:
+it might not be super happy. 
+
+24:
+But if you use a controlled text generation approach like FUDGE, 
+
+25:
+You can get this translation which preserves the meaning, while also better matching the formal style constraint. 
+
+26:
+
+
+27:
+You might wonder, why don't we just do rejection sampling?
+
+28:
+Just sample a bunch of times from the translator
+
+29:
+until you get one that passes. 
+That might work for some simpler constraints like topics, but it's going to be totally intractable when you use constraints that are very rarely satisfied by your generator distribution. 
+
+30:
+What are some more difficult attribute constraints?
+
+31:
+Consider this task, effectively, complete the poem. 
+
+32:
+Let’s see what the language model says when we give it this input from Shakespeare. And even thence thou wilt be stol'n I fear
+
+32:
+and thou art a good friend of mine. The king's guard. 
+
+33:
+This is terrible! It doesn't roll off the tongue, it doesn't rhyme, it doesn't even end the sentence properly at the end. 
+
+34:
+Shakespeare hates it. You could generate any number of poems using your language model, and Shakespeare is gonna hate every last one. 
+
+35:
+But if you ask FUDGE, you get this. And even thence thou wilt be stol'n I fear, for this shall be the end. That's pretty clear. 
+
+36:
+So it's not Shakespeare, but it gets the meter, or rhythm right, it rhymes, and it ends the sentence in about the right place at the end. Not too bad. 
+
+37:
+Ok. So how does controlled generation work anyway? Let me give an incredibly oversimplified summary of some ideas in this line of work to put FUDGE in context. 
+
+38:
+First, you can finetune. 
+
+39:
+We'll use the politics topic as an example. 
+
+39:
+You can train on a bunch of text about politics. Depending on how good your data is, this can work great! or it could be rather bad. It also might be annoying to have to finetune again next time, when you want to write about science instead. 
+
+40:
+Another idea is to use a classifier. 
+
+41:
+We're already using a classifier to evaluate. 
+
+42:
+We can use a classifier to help us generate too. There's many different ways to do this. 
+
+43:
+For example, you might propagate gradients to modify the model's activations, 
+
+44:
+or you could just directly modify the model's output probabilities. One advantage of the latter method is that you don't need to access the original language model's gradients at all, which is nice if you're using something like GPT3. You can also swap the generator out as better models become available, like GPT4. Our approach FUDGE falls in this category of just modifying the output logits. 
+
+45:
+Ok, so what's FUDGE?
+
+46:
+FUDGE at its core learns a lightweight classifier for the attribute constraint, and then follows a Bayesian factorization to combine it with the original generator, like the pretrained language model. 
+
+47:
+A key difference from prior work is that we plan for the future, not the immediate present. 
+
+48:
+And finally, FUDGE can easily and flexibly compose multiple constraints. 
+
+49:
+Let's start with the classifier and Bayesian factorization. 
+
+50:
+Since FUDGE builds off the base language model, let's review:
+
+51:
+You feed whatever tokens you have so far
+
+52:
+into your model, 
+
+53:
+which models the distribution over possible next tokens. 
+
+54:
+And then you sample from this distribution to pick your continuation. 
+
+55:
+Now, we completely ignored the formal style constraint. 
+
+56:
+So it's gonna be unhappy. 
+
+57:
+So what do you want to do instead?
+
+58:
+Well, what you really want is to use your classifier to judge continuations. 
+
+59:
+and mark which ones are acceptable given your constraint. So the classifier looks at each possible next continuation Do you want, Do you prefer, Do you thus, and so on maybe up to some limit, and judges each one individually to decide which it's ok with. 
+
+60:
+So putting it together, we throw out whatever the classifier didn't like, 
+
+61:
+and then we select from whatever the classifier is ok with depending on the base generator's probabilities. 
+And this gets you "Do you prefer" instead of "Do you want"  
+
+62:
+which sounds a bit more formal.
+
+63:
+But there's a subtle problem in this diagram. 
+The classifier is supposed to judge the finished sentence, not the prefixes, 
+
+64:
+but here we've shoved it into our generation procedure where it's gonna operate on prefixes.
+What we actually need is
+
+65:
+kind of a future looking crystal ball version of the classifier, which judges whether the whole sentence will eventually be formal, given the current prefix. 
+
+65:
+And in practice, we implement the judge as a learned binary classifier, which runs on each possible continuation, and for each one outputs the probability that in the end the desired attribute a will be True, or in this case whether the finished sentence would be formal, given just the current prefix plus next token. 
+So in the red table, this 0.2 by "want" means it thinks that there's a 20% chance that the eventual sentence would be formal if we started with Do you want, whereas it assigns a much higher probability for Do you prefer and Do you thus because those are more formal. 
+
+68:
+And then we sample proportionally from the probabilities in the purple table, 
+which are now just the elementwise product of the blue and red tables' probabilities. 
+This corresponds exactly to a Bayesian factorization for the probability distribution over sentences generated by the language model that possess the desired attribute, and you can check the math in the paper. 
+But the Bayesian motivation is not new. 
+
+70:
+What's really new in FUDGE is that we explicitly distinguish the final classifier from the crystal ball future-predicting version that we use during the generation procedure, and making this distinction is critical for performance. 
+
+71:
+Let's see FUDGE in action.
+
+72:
+if you recall our Spanish to English formal translation example. 
+
+73:
+Let's backtrack FUDGE to this step. 
+
+74:
+Again we have the repeated Spanish que que in bold, which the base model translated verbatim as that, that. 
+
+75:
+But by having our classifier judge the formality of possible continuations, FUDGE is able to modify its continuation so that it doesn't repeat the words here. 
+
+76:
+And the end result preserves the meaning while being also a bit more formal. 
+
+77:
+And finally this all holds up in our experiments. So we have a classifier trained on a heldout dataset of formality, and it indeed judges FUDGE's outputs to be significantly more formal than those of the best prior method. 
+
+78:
+At the same time, FUDGE is able to preserve the content, based on measuring BLEU against cleaned reference translations. 
+
+79:
+Ok great. So next I'll elaborate more about planning for the future vs present,
+
+80:
+and I'll try to show more clearly *why* we really need this crystal ball classifier. 
+
+81:
+Let's go back to our politics topic constraint. 
+
+82:
+For simplicity, let's pretend just for this talk that the politics topic just means whether or not you use the word "constitution."
+
+83:
+So the constraint that we check at the end of generation is literally just grep for constitution. 
+
+84:
+The crystal ball classifier has a much harder task. For a given prefix, it needs to predict whether each possible word makes "constitution" more likely to appear later.
+
+85:
+So how do we learn this?
+
+86:
+Say you have this example in your training data containing "constitution"
+
+87:
+The crystal ball classifier takes this and makes a bunch of prefix examples, labeled with the attribute function a(X)=True because we saw those prefixes led to the word "constitution" later. 
+
+88:
+And similarly if you have this example without the word "constitution"
+
+89:
+It'll label those prefixes as False. 
+
+90:
+Ok 
+
+91:
+So let's examine what FUDGE generates.
+
+92:
+After a couple of steps, we have It has been shown whether the two
+
+93:
+What if you hypothetically use the non crystal ball classifier to guide generation? 
+
+94:
+The issue focused on whether the two constitution
+(pause) Maybe not. We don't really want to sacrifice fluency. But this classifier is too shortsighted. It's all or nothing, you either have to use constitution immediately or bust. 
+
+95:
+Ok
+
+96:
+Good thing FUDGE is actually using the future looking classifier.
+
+97:
+So instead, FUDGE is going to generate something which is still reasonably likely under the original language model, but makes constitution more likely to be generated later on. This classifier doesn't care whether constitution is generated now or later, as long as it shows up eventually. 
+
+98:
+So here it's going to write about institutions, so it's on the right topic
+
+99:
+which eventually leads it to write about the constitution. 
+
+100:
+Great.
+
+101:
+And indeed in our experiments, FUDGE is great according to human evaluations too. It substantially beats the best prior method in pairwise evaluations of being on topic, 
+
+102:
+while also beating it in fluency.
+
+103:
+Cool. So I've now demonstrated the importance of planning for the future through this topic control task.
+And finally, i'll highlight FUDGE's compositional potential, using a third task. 
+
+104:
+Ok. 
+
+105:
+So remember our schematic diagram where we have the judge of formality. 
+
+106:
+This works great when we have just one attribute we care about. 
+
+107:
+Now, what if you have another attribute? Maybe you want it to be formal but also about math
+
+108:
+Now our old crystal ball classifier of just formality isn't good enough anymore. 
+Of course, you could construct a classifier which predicts both attributes simultaneously, but FUDGE lets you do something more scalable and also i think a bit more elegant. 
+
+109:
+Just reuse the formality predictor, while adding a second crystal ball for the math topic. 
+So now your generation is guided by one classifier for each constraint, 
+
+110:
+and it picks something which it thinks sounds more mathy. 
+
+111:
+So let's see this in practice. 
+
+112:
+Remember our poetry examples? where FUDGE's example isn't quite Shakespeare but is at least pretty well-formed. 
+This task actually uses three separate constraints:
+
+113:
+We want iambic meter, which means that every other syllable should be a stressed syllable when we're reading it,
+
+114:
+we want the two lines to rhyme, and since the first line is 10 syllables that means the second line should be 10 syllables too,
+
+115:
+and the second line that we generate should end the sentence afterward too.
+
+116:
+So let's backtrack to halfway through FUDGE's generation, before it's generated the last couple of words, pretty clear. 
+
+117:
+FUDGE is using its crystal ball poetry classifier, which is a combination of three classifiers, one for each of the three constraints. 
+
+118:
+It would be perfectly grammatical to just directly say "clear". This works for the iambic meter constraint. But this is only the 8th syllable, so you'd still have to rhyme and end a new sentence in just two more syllables. 
+
+119:
+Then we're probably back to angry Shakespeare.
+
+120:
+So FUDGE first generates pretty 
+
+121:
+before finishing with clear and a period, 
+
+122:
+and this show how FUDGE is able to compose multiple attributes using multiple classifiers, while simultaneously planning for the future as I described previously. 
+
+123:
+Finally, if we look at the experiments, FUDGE's performance holds up, with the success rate on simultaneously satisfying all three constraints being more than double that of the best prior method.
+
+124:
+So that wraps things up. The takeaways are that FUDGE is a simple, flexible method for controlled text generation.
+
+125:
+To reiterate our three main points from earlier, FUDGE learns a classifier in a Bayesian factorization to guide the generation, 
+it plans for the future rather than the present, 
+and it can easily and flexibly compose different constraints as needed while maintaining strong performance. 
+
+126:
+And our code is all publicly available.
+
+127:
+Thanks for watching! And please check out our paper for the full details. 
