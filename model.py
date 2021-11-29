@@ -43,7 +43,7 @@ class Model(nn.Module):
             self.rnn = nn.LSTM(HIDDEN_DIM, HIDDEN_DIM, num_layers=3, bidirectional=False, dropout=0.5) # want it to be causal so we can learn all positions
             self.out_linear = nn.Linear(HIDDEN_DIM, 1)
         elif self.iambic:
-            self.gpt_embed = nn.Embedding(gpt_pad_id + 1, HIDDEN_DIM, padding_idx=0) # 0 in marian is ''
+            self.gpt_embed = nn.Embedding(gpt_pad_id + 1, HIDDEN_DIM, padding_idx=gpt_pad_id)
             self.rnn = nn.LSTM(HIDDEN_DIM, HIDDEN_DIM, num_layers=3, bidirectional=False, dropout=0) # want it to be causal so we can learn all positions
             self.out_linear = nn.Linear(HIDDEN_DIM, 1)
         elif self.rhyme:
