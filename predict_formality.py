@@ -59,7 +59,7 @@ def predict_formality(model, tokenizer, conditioning_model, input_text, dataset_
         encoded_input = [tokenizer.encode(it, return_tensors='pt').to(device) for it in input_text] # batch x seq
         encoded_input = torch.cat(encoded_input, dim=0)
 
-        input_ids = torch.LongTensor([[65000]]).to(device)
+        input_ids = torch.LongTensor([[58100]]).to(device)
         cur_len = 1
         max_length = length_cutoff
         min_length = 0
@@ -68,8 +68,8 @@ def predict_formality(model, tokenizer, conditioning_model, input_text, dataset_
         top_p = 1.0
         repetition_penalty = 1.0
         no_repeat_ngram_size = 0
-        bad_words_ids = [[65000]]
-        pad_token_id = 65000
+        bad_words_ids = [[58100]]
+        pad_token_id = 58100
         eos_token_id = 0
         effective_batch_size = batch_size
         attention_mask = encoded_input.new_ones(encoded_input.shape)
