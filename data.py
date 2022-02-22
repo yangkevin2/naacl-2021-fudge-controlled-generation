@@ -269,7 +269,7 @@ class SplitLoader(torch.utils.data.IterableDataset):
                 length = len(sentence)
                 min_sentence_length = MIN_SENTENCE_LENGTH
                 if len(sentence) > min_sentence_length: # set to 3. well, everything in data is > 3 for the bag of words task
-                    pos_to_split = length # no need to split since we already have the label
+                    pos_to_split = length # no need to split; we're going to train on all possible prefixes simultaneously for efficiency
                     inp = sentence[:pos_to_split]
                     length = len(inp)
                     num_words_in_input = len(self.parent.tokenizer.decode(inp).split())
